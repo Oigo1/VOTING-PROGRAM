@@ -1,0 +1,81 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'vote/css/style.css' %}">
+    <style>
+        .category-section {
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .contestant-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: flex-start;
+        }
+
+        .contestant-card {
+            width: 200px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        .contestant-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+
+        .winner {
+            font-weight: bold;
+            color: green;
+            font-size: 18px;
+        }
+
+        .votes {
+            color: #333;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Results</h1>
+
+    {% for result in results_data %}
+        <div class="category-section">
+            <h2 class="category-title">{{ result.category }}</h2>
+            <div class="contestant-container">
+                {% for contestant in result.contestants %}
+                    <div class="contestant-card">
+                        {% if contestant.image %}
+                            <img src="{{ contestant.image.url }}" alt="{{ contestant.name }}">
+                        {% else %}
+                            <img src="{% static 'image/placeholder.jpg' %}" alt="No image available">
+                        {% endif %}
+                        <p>{{ contestant.name }}</p>
+                        <p class="votes">Votes: {{ contestant.votes }}</p>
+                        {% if contestant.is_winner %}
+                            <p class="winner">WINNER!</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+</body>
+</html>
+

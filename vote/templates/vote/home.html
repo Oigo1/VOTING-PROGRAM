@@ -1,0 +1,126 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voting Page</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'vote/css/style.css' %}">
+    <style>
+        .contestant-card { margin: 20px; padding: 20px; border: 1px solid #ccc; }
+        .vote-button { background-color: blue; color: white; padding: 10px; border: none; cursor: pointer; }
+        .voted { background-color: green; }
+        .timer { font-size: 24px; color: red; }
+    </style>
+</head>
+<body>
+    <h1>Vote for your Contestant</h1>
+
+    <div class="timer" id="timer">
+        <p>Time Remaining: <span id="timer-text">02:00</span></p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <input type="text" id="voter-id" name="voter_id" placeholder="Enter 8-digit ID" maxlength="8" oninput="validateID()" />
+    </form>
+
+    {% for category in categories %}
+        <h2>{{ category.name }}</h2>
+        <div class="category">
+            {% for contestant in category.contestant_set.all %}
+                <div class="contestant-card">
+                    <img src="{{ contestant.image.url }}" alt="{{ contestant.name }}" />
+                    <p>Name: {{ contestant.name }}</p>
+                    <p>Seat: {{ contestant.seat.name }}</p>
+                    <button class="vote-button" id="vote-button-{{ contestant.id }}" onclick="submitVote('{{ contestant.id }}')" disabled>Vote</button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
+    <script>
+        function validateID() {
+            const voterIdInput = document.getElementById('voter-id').value;
+            const voteButtons = document.querySelectorAll('.vote-button');
+    
+            if (/^\d{8}$/.test(voterIdInput)) {
+                voteButtons.forEach(button => {
+                    button.disabled = false;
+                });
+            } else {
+                voteButtons.forEach(button => {
+                    button.disabled = true;
+                });
+            }
+        }
+
+        function submitVote(contestantId) {
+            const voterId = document.getElementById('voter-id').value;
+
+            if (!voterId || !/^\d{8}$/.test(voterId)) {
+                alert('Please enter a valid 8-digit ID to vote!');
+                return;
+            }
+
+            fetch(`/submit_vote/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    contestant_id: contestantId,
+                    voter_id: voterId
+                })
+            }).then(response => {
+                if (response.ok) {
+                    const button = document.getElementById(`vote-button-${contestantId}`);
+                    button.textContent = 'VOTED';
+                    button.classList.add('voted');
+                    button.disabled = true;
+
+                    setTimeout(() => {
+                        button.textContent = 'VOTE';
+                        button.classList.remove('voted');
+                        button.disabled = false;
+                        document.getElementById('voter-id').value = '';
+                    }, 3000);
+                } else {
+                    alert('An error occurred while submitting your vote.');
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('Failed to submit your vote.');
+            });
+        }
+
+        let votingMinutes = 2;
+        let timeRemaining = votingMinutes * 60;
+
+        function startTimer() {
+            const timerElement = document.getElementById('timer-text');
+            const countdown = setInterval(() => {
+                let minutes = Math.floor(timeRemaining / 60);
+                let seconds = timeRemaining % 60;
+                seconds = seconds < 10 ? '0' + seconds : seconds;
+
+                timerElement.textContent = `${minutes}:${seconds}`;
+
+                if (timeRemaining > 0) {
+                    timeRemaining--;
+                } else {
+                    clearInterval(countdown);
+                    alert('Voting time is over!');
+                    document.querySelectorAll('.vote-button').forEach(button => {
+                        button.disabled = true;
+                    });
+                    window.location.href = '/results/';
+                }
+            }, 1000);
+        }
+
+        window.onload = startTimer;
+    </script>
+</body>
+</html>
